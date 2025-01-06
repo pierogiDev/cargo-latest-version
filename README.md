@@ -37,7 +37,7 @@ tokio = "1.35.0" ( = latest: 1.35.0 )
   - Also works with VS Code compatible editors:
     - [VSCodium](https://vscodium.com/)
     - [Cursor](https://cursor.sh/)
-    - [Windsurf](https://windsurf.io/)
+    - [Windsurf](https://codeium.com/windsurf/)
     - Other VS Code based editors
 - Internet connection (to fetch latest versions from crates.io)
 
