@@ -68,7 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Cargo Latest Version extension is now active');
     
     decorationType = vscode.window.createTextEditorDecorationType({
-        after: {
+        before: {
             margin: '0 0 0 1em',
             color: new vscode.ThemeColor('editorCodeLens.foreground'),
         }
@@ -291,12 +291,13 @@ async function updateLatestVersions(editor: vscode.TextEditor) {
                 // Create decoration at the end of the line
                 const position = new vscode.Position(lineNumber, line.text.length);
                 const decoration: vscode.DecorationOptions = {
-                    range: new vscode.Range(position, position),
+                    range: new vscode.Range(position.line, position.character, position.line, position.character),
                     renderOptions: {
-                        after: {
+                        before: {
                             contentText: latestVersion === cleanVersion ? 
                                 ` ( = latest: ${latestVersion} )` : 
                                 ` ( < latest: ${latestVersion} )`,
+                            color: latestVersion === cleanVersion ? '#4EC9B0' : '#FFA500'
                         }
                     }
                 };
@@ -327,10 +328,11 @@ async function addNewDependencyDecoration(editor: vscode.TextEditor, lineNumber:
         const line = editor.document.lineAt(lineNumber);
         const position = new vscode.Position(lineNumber, line.text.length);
         const newDependencyDecoration: vscode.DecorationOptions = {
-            range: new vscode.Range(position, position),
+            range: new vscode.Range(position.line, position.character, position.line, position.character),
             renderOptions: {
-                after: {
+                before: {
                     contentText: ` "${latestVersion}"`,
+                    color: '#4EC9B0'
                 }
             }
         };
