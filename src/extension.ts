@@ -74,99 +74,24 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Watch for active editor changes
-    let onActiveEditorChanged = vscode.window.onDidChangeActiveTextEditor(editor => {
-        if (!editor) {
-            console.log('No active editor');
-            return;
-        }
-
-        console.log('Active editor changed:', {
-            fileName: editor.document.fileName,
-            languageId: editor.document.languageId
-        });
-
-        const isCargoToml = editor.document.fileName.endsWith('Cargo.toml') ||
-                           (editor.document.languageId === 'toml' && editor.document.fileName.endsWith('Cargo.toml'));
-
-        if (isCargoToml) {
-            console.log('Cargo.toml file opened, checking versions automatically');
-            updateLatestVersions(editor);
-        }
-    });
-
-    // Watch for document changes
-    let onDocumentChanged = vscode.workspace.onDidChangeTextDocument(async (event) => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor || event.document !== editor.document) {
-            return;
-        }
-
-        console.log('Document changed:', {
-            fileName: editor.document.fileName,
-            languageId: editor.document.languageId
-        });
-
-        const isCargoToml = editor.document.fileName.endsWith('Cargo.toml') ||
-                           (editor.document.languageId === 'toml' && editor.document.fileName.endsWith('Cargo.toml'));
-
-        if (!isCargoToml) {
-            return;
-        }
-
-        // Process each change
-        for (const change of event.contentChanges) {
-            const lineNumber = change.range.start.line;
-            const lineText = editor.document.lineAt(lineNumber).text;
-            const prevText = event.document.getText(change.range);
-            
-            console.debug('Processing change:', {
-                text: change.text,
-                prevText,
-                lineNumber,
-                lineText,
-                range: change.range
-            });
-
-            // Check for dependency line patterns
-            const isEqualsSign = change.text === '=';
-            const isNewDependencyLine = lineText.match(/^\s*[a-zA-Z0-9_-]+\s*=\s*$/);
-            const isVersionChange = lineText.match(/^\s*[a-zA-Z0-9_-]+\s*=\s*"[^"]*"/) || // "version"
-                                  lineText.match(/^\s*[a-zA-Z0-9_-]+\s*=\s*'[^']*'/) ||   // 'version'
-                                  lineText.match(/version\s*=\s*"[^"]*"/);                 // version = "version"
-
-            console.debug('Change detection:', {
-                isEqualsSign,
-                isNewDependencyLine,
-                isVersionChange,
-                lineText
-            });
-
-            // Check if this is a new dependency line being created
-            if (isEqualsSign || isNewDependencyLine) {
-                console.log('Detected new dependency or equals sign');
-                // Extract crate name
-                const match = lineText.match(/^\s*([a-zA-Z0-9_-]+)\s*=\s*$/);
-                if (match) {
-                    const crateName = match[1];
-                    await addNewDependencyDecoration(editor, lineNumber, crateName);
-                }
-            } else if (isVersionChange || change.text === '"' || change.text === "'" || change.text.includes('version')) {
-                console.log('Detected version change');
+    // Subscribe to document changes
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(async (event) => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && event.document === editor.document) {
                 await updateLatestVersions(editor);
             }
-        }
-    });
+        })
+    );
 
-    // Watch for document save
-    let onDocumentSave = vscode.workspace.onDidSaveTextDocument(async (document) => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && document === editor.document && 
-            document.fileName.toLowerCase().endsWith('Cargo.toml')) {
-            console.log('Cargo.toml file saved, updating versions');
-            await updateLatestVersions(editor);
-        }
-    });
+    // Subscribe to active editor changes
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+            if (editor) {
+                await updateLatestVersions(editor);
+            }
+        })
+    );
 
     // Register command (as backup)
     let showLatestVersions = vscode.commands.registerCommand('cargo-latest-version.showLatestVersions', () => {
@@ -197,12 +122,7 @@ export function activate(context: vscode.ExtensionContext) {
         updateLatestVersions(editor);
     });
 
-    context.subscriptions.push(
-        showLatestVersions,
-        onActiveEditorChanged,
-        onDocumentChanged,
-        onDocumentSave
-    );
+    context.subscriptions.push(showLatestVersions);
 
     // Initial check for already open Cargo.toml
     const activeEditor = vscode.window.activeTextEditor;
@@ -223,8 +143,20 @@ async function checkCargoTomlDocument(uri: vscode.Uri) {
 }
 
 async function updateLatestVersions(editor: vscode.TextEditor) {
-    console.log('Updating latest versions');
-    const text = editor.document.getText();
+    if (!editor || !editor.document) {
+        return;
+    }
+
+    const document = editor.document;
+    if (document.languageId !== 'toml' || !document.fileName.endsWith('Cargo.toml')) {
+        return;
+    }
+
+    // Clear all existing decorations
+    currentDecorations.clear();
+    editor.setDecorations(decorationType, []);
+
+    const text = document.getText();
     let cargo: CargoToml;
     
     try {
