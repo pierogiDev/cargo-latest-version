@@ -295,8 +295,8 @@ async function updateLatestVersions(editor: vscode.TextEditor) {
                     renderOptions: {
                         after: {
                             contentText: latestVersion === cleanVersion ? 
-                                ` (latest: ${latestVersion})` : 
-                                ` ⟶ ${latestVersion}`,
+                                ` ( = latest: ${latestVersion} )` : 
+                                ` ( < latest: ${latestVersion} )`,
                         }
                     }
                 };
