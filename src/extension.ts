@@ -283,7 +283,7 @@ async function addNewDependencyDecoration(editor: vscode.TextEditor, lineNumber:
             range: new vscode.Range(position.line, position.character, position.line, position.character),
             renderOptions: {
                 before: {
-                    contentText: ` "${latestVersion}"`,
+                    contentText: ` "( latest: ${latestVersion} )"`,
                     color: '#4EC9B0'
                 }
             }
