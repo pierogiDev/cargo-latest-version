@@ -34,6 +34,11 @@ tokio = "1.35.0" ( = latest: 1.35.0 )
 ## Requirements
 
 - Visual Studio Code 1.85.0 or higher
+  - Also works with VS Code compatible editors:
+    - [VSCodium](https://vscodium.com/)
+    - [Cursor](https://cursor.sh/)
+    - [Windsurf](https://windsurf.io/)
+    - Other VS Code based editors
 - Internet connection (to fetch latest versions from crates.io)
 
 ## Installation
