@@ -24,7 +24,7 @@ interface CargoToml {
 let decorationType: vscode.TextEditorDecorationType;
 let outputChannel: vscode.OutputChannel;
 // Store decorations globally with crate names as keys
-let currentDecorations: Map<string, vscode.DecorationOptions> = new Map();
+let currentDecorations: Map<string, vscode.DecorationOptions[]> = new Map();
 
 // Initialize output channel
 function initializeLogging() {
@@ -78,8 +78,33 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(async (event) => {
             const editor = vscode.window.activeTextEditor;
-            if (editor && event.document === editor.document) {
-                await updateLatestVersions(editor);
+            if (!editor || event.document !== editor.document) {
+                return;
+            }
+
+            if (!editor.document.fileName.endsWith('Cargo.toml')) {
+                return;
+            }
+
+            // Process each change
+            for (const change of event.contentChanges) {
+                const lineNumber = change.range.start.line;
+                const lineText = editor.document.lineAt(lineNumber).text;
+
+                // Check for new dependency line patterns
+                const isEqualsSign = change.text === '=';
+                const isNewDependencyLine = lineText.match(/^\s*[a-zA-Z0-9_-]+\s*=\s*$/);
+
+                // Check if this is a new dependency line being created
+                if (isEqualsSign || isNewDependencyLine) {
+                    const match = lineText.match(/^\s*([a-zA-Z0-9_-]+)\s*=\s*$/);
+                    if (match) {
+                        const crateName = match[1];
+                        await addNewDependencyDecoration(editor, lineNumber, crateName);
+                    }
+                } else {
+                    await updateLatestVersions(editor);
+                }
             }
         })
     );
@@ -233,7 +258,7 @@ async function updateLatestVersions(editor: vscode.TextEditor) {
                         }
                     }
                 };
-                currentDecorations.set(crateName, decoration);
+                currentDecorations.set(crateName, [decoration]);
             } catch (e) {
                 console.error(`Failed to fetch version for ${crateName}:`, e);
                 continue;
@@ -242,21 +267,16 @@ async function updateLatestVersions(editor: vscode.TextEditor) {
     }
 
     // Apply all decorations
-    editor.setDecorations(decorationType, Array.from(currentDecorations.values()));
+    editor.setDecorations(decorationType, Array.from(currentDecorations.values()).flat());
 }
 
 async function addNewDependencyDecoration(editor: vscode.TextEditor, lineNumber: number, crateName: string) {
     try {
-        // Remove any existing decoration for this crate
-        currentDecorations.delete(crateName);
+        const latestVersion = await getLatestVersion(crateName);
+        if (!latestVersion) {
+            return;
+        }
 
-        console.log(`Fetching version for new dependency: ${crateName}`);
-        const response = await axios.get(`https://crates.io/api/v1/crates/${encodeURIComponent(crateName)}`);
-        const data = response.data as any;
-        const latestVersion = data.crate.max_version;
-        console.log(`Latest version for ${crateName}:`, latestVersion);
-
-        // Create decoration for the new dependency
         const line = editor.document.lineAt(lineNumber);
         const position = new vscode.Position(lineNumber, line.text.length);
         const newDependencyDecoration: vscode.DecorationOptions = {
@@ -269,11 +289,23 @@ async function addNewDependencyDecoration(editor: vscode.TextEditor, lineNumber:
             }
         };
 
-        // Update global decorations
-        currentDecorations.set(crateName, newDependencyDecoration);
-        editor.setDecorations(decorationType, Array.from(currentDecorations.values()));
-    } catch (e) {
-        console.error(`Failed to fetch version for ${crateName}:`, e);
+        // Add to decoration map
+        currentDecorations.set(crateName, [newDependencyDecoration]);
+        editor.setDecorations(decorationType, [newDependencyDecoration]);
+
+    } catch (error) {
+        console.error('Error adding new dependency decoration:', error);
+    }
+}
+
+async function getLatestVersion(crateName: string) {
+    try {
+        const response = await axios.get(`https://crates.io/api/v1/crates/${encodeURIComponent(crateName)}`);
+        const data = response.data as any;
+        return data.crate.max_version;
+    } catch (error) {
+        console.error('Error fetching latest version:', error);
+        return null;
     }
 }
 
