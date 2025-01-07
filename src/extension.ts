@@ -20,11 +20,19 @@ interface CargoToml {
     [key: string]: any;
 }
 
+interface VersionCache {
+    version: string;
+    timestamp: number;
+}
+
 // Global variables
 let decorationType: vscode.TextEditorDecorationType;
 let outputChannel: vscode.OutputChannel;
 // Store decorations globally with crate names as keys
 let currentDecorations: Map<string, vscode.DecorationOptions[]> = new Map();
+// Cache for storing latest versions
+let versionCache: Map<string, VersionCache> = new Map();
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 // Initialize output channel
 function initializeLogging() {
@@ -231,9 +239,7 @@ async function updateLatestVersions(editor: vscode.TextEditor) {
 
             try {
                 console.log(`Fetching version for ${crateName}`);
-                const response = await axios.get(`https://crates.io/api/v1/crates/${encodeURIComponent(crateName)}`);
-                const data = response.data as any;
-                const latestVersion = data.crate.max_version;
+                const latestVersion = await getLatestVersion(crateName);
                 console.log(`Latest version for ${crateName}:`, latestVersion);
 
                 // Find the end of the line
@@ -298,14 +304,31 @@ async function addNewDependencyDecoration(editor: vscode.TextEditor, lineNumber:
     }
 }
 
-async function getLatestVersion(crateName: string) {
+async function getLatestVersion(crateName: string): Promise<string> {
+    // Check cache first
+    const cached = versionCache.get(crateName);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        console.log(`Cache hit for ${crateName}: ${cached.version}`);
+        return cached.version;
+    }
+
     try {
         const response = await axios.get(`https://crates.io/api/v1/crates/${encodeURIComponent(crateName)}`);
-        const data = response.data as any;
-        return data.crate.max_version;
+        const version = response.data.crate.max_version;
+        
+        // Update cache
+        versionCache.set(crateName, {
+            version,
+            timestamp: now
+        });
+        
+        console.log(`Fetched latest version for ${crateName}: ${version}`);
+        return version;
     } catch (error) {
-        console.error('Error fetching latest version:', error);
-        return null;
+        console.error(`Error fetching version for ${crateName}:`, error);
+        return '';
     }
 }
 
