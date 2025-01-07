@@ -2,7 +2,7 @@
 
 Automatically displays the latest version of crates next to their specified versions in your `Cargo.toml` files. Stay up-to-date with your Rust dependencies at a glance!
 
-![Version Display Example](images/version-display.png)
+![Version Display Example](https://raw.githubusercontent.com/pierogiDev/cargo-latest-version/main/images/version-display.png)
 
 ## Features
 

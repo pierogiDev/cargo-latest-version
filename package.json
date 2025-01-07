@@ -39,6 +39,10 @@
       }
     ]
   },
+  "files": [
+    "out/**/*",
+    "images/**/*"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
