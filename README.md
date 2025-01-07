@@ -10,6 +10,7 @@ Automatically displays the latest version of crates next to their specified vers
 - See the latest versions from crates.io right in your editor
 - Automatic updates when you add or modify dependencies
 - Clear visual indicators for up-to-date and outdated packages
+- Efficient caching system for faster version lookups
 
 📌 **Smart Version Display**
 - `( = latest: x.y.z )` - Your dependency is up to date
@@ -43,7 +44,7 @@ tokio = "1.35.0" ( = latest: 1.35.0 )
 
 ## Installation
 
-1. Download the latest `.vsix` file from the releases
+1. Download the `.vsix` file from the [GitHub repository](https://github.com/pierogiDev/cargo-latest-version)
 2. In VS Code:
    - Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (macOS)
    - Type "Install from VSIX" and select it
@@ -54,22 +55,10 @@ Or via command line:
 code --install-extension cargo-latest-version-0.6.0.vsix
 ```
 
-## Release Notes
-
-### 0.6.0 (Latest)
-- Enhanced version display with improved readability
-- Added spaces around operators for clearer version comparison
-- Optimized extension package size
-
-### 0.5.0
-- Initial release
-- Automatic version checking
-- Version display decorations
-
 ## Contributing
 
 Found a bug or have a suggestion? Please feel free to:
-1. [Open an issue](https://github.com/yourusername/cargo-latest-version/issues)
+1. [Open an issue](https://github.com/pierogiDev/cargo-latest-version/issues)
 2. Submit a pull request
 
 ## License
