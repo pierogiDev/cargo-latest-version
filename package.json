@@ -3,6 +3,7 @@
   "displayName": "Cargo Latest Version",
   "description": "Display latest version of crates in Cargo.toml",
   "version": "0.6.0",
+  "publisher": "pierogiDev",
   "license": "MIT",
   "repository": {
     "type": "git",
